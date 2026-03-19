@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "LLM Context Extension",
+  "version": "1.0.0",
+  "description": "Extract any page as clean Markdown for LLMs",
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Convert to Markdown"
+  },
+  
+  "permissions": ["activeTab", "scripting"],
+  
+  "host_permissions": []
+}

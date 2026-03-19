@@ -1,0 +1,11 @@
+body { width: 320px; font-family: system-ui, sans-serif; padding: 16px; margin: 0; background: #1e1e1e; color: #fff; }
+h1 { font-size: 18px; margin: 0 0 16px; text-align: center; }
+button {
+  width: 100%; padding: 14px; font-size: 16px; background: #00cc66; color: white;
+  border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
+}
+button:hover { background: #00b359; }
+button:disabled { background: #555; cursor: not-allowed; }
+#status { margin-top: 12px; text-align: center; font-size: 14px; }
+.success { color: #00cc66; }
+.error { color: #ff4444; }
