@@ -1,11 +1,256 @@
-body { width: 320px; font-family: system-ui, sans-serif; padding: 16px; margin: 0; background: #1e1e1e; color: #fff; }
-h1 { font-size: 18px; margin: 0 0 16px; text-align: center; }
-button {
-  width: 100%; padding: 14px; font-size: 16px; background: #00cc66; color: white;
-  border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --neon-cyan: #00f5ff;
+  --neon-pink: #ff00a0;
+  --neon-green: #00ff88;
+  --dark-bg: #080b12;
+  --panel-bg: #0d1117;
+  --border-glow: rgba(0, 245, 255, 0.4);
+  --grid-color: rgba(0, 245, 255, 0.04);
 }
-button:hover { background: #00b359; }
-button:disabled { background: #555; cursor: not-allowed; }
-#status { margin-top: 12px; text-align: center; font-size: 14px; }
-.success { color: #00cc66; }
-.error { color: #ff4444; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  width: 320px;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 0;
+  margin: 0;
+  background: var(--dark-bg);
+  color: #c8e6ff;
+  overflow: hidden;
+
+  /* Cyberpunk grid background */
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 0%, rgba(0, 245, 255, 0.07) 0%, transparent 70%);
+  background-size: 20px 20px, 20px 20px, 100% 100%;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.07) 2px,
+    rgba(0, 0, 0, 0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
+
+.container {
+  padding: 20px 18px 22px;
+  position: relative;
+}
+
+/* Top corner decorations */
+.container::before,
+.container::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--neon-cyan);
+  border-style: solid;
+}
+.container::before {
+  top: 10px; left: 10px;
+  border-width: 2px 0 0 2px;
+}
+.container::after {
+  top: 10px; right: 10px;
+  border-width: 2px 2px 0 0;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 18px;
+  padding-top: 6px;
+  position: relative;
+}
+
+.sys-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--neon-pink);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  opacity: 0.8;
+  animation: flicker 4s infinite;
+}
+
+h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--neon-cyan);
+  text-shadow:
+    0 0 10px rgba(0, 245, 255, 0.8),
+    0 0 30px rgba(0, 245, 255, 0.3);
+  position: relative;
+}
+
+/* Divider line */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  opacity: 0.4;
+}
+.divider-dot {
+  width: 5px; height: 5px;
+  background: var(--neon-pink);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  box-shadow: 0 0 8px var(--neon-pink);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Button */
+button {
+  width: 100%;
+  padding: 13px 16px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--neon-green);
+  border: 1px solid var(--neon-green);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow:
+    0 0 12px rgba(0, 255, 136, 0.2),
+    inset 0 0 12px rgba(0, 255, 136, 0.04);
+
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+
+/* Animated shimmer sweep */
+button::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 255, 136, 0.15),
+    transparent
+  );
+  transition: left 0.4s ease;
+}
+
+button::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button:hover {
+  background: rgba(0, 255, 136, 0.08);
+  color: #fff;
+  border-color: var(--neon-cyan);
+  box-shadow:
+    0 0 20px rgba(0, 255, 136, 0.4),
+    0 0 50px rgba(0, 255, 136, 0.1),
+    inset 0 0 20px rgba(0, 255, 136, 0.06);
+  text-shadow: 0 0 10px var(--neon-green);
+}
+
+button:hover::before {
+  left: 100%;
+}
+
+button:active {
+  transform: scale(0.98);
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.5), inset 0 0 15px rgba(0, 255, 136, 0.1);
+}
+
+button:disabled {
+  border-color: #333;
+  color: #444;
+  cursor: not-allowed;
+  box-shadow: none;
+  text-shadow: none;
+  background: transparent;
+}
+
+/* Status */
+#status {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 11px;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 1px;
+  min-height: 18px;
+  transition: all 0.3s ease;
+}
+
+.success {
+  color: var(--neon-green);
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+}
+.success::before { content: '✓ '; }
+
+.error {
+  color: var(--neon-pink);
+  text-shadow: 0 0 8px rgba(255, 0, 160, 0.6);
+}
+.error::before { content: '✗ '; }
+
+/* Bottom corner decorations */
+.corner-br {
+  position: absolute;
+  bottom: 10px; right: 10px;
+  width: 14px; height: 14px;
+  border-right: 2px solid var(--neon-cyan);
+  border-bottom: 2px solid var(--neon-cyan);
+  opacity: 0.7;
+}
+.corner-bl {
+  position: absolute;
+  bottom: 10px; left: 10px;
+  width: 14px; height: 14px;
+  border-left: 2px solid var(--neon-cyan);
+  border-bottom: 2px solid var(--neon-cyan);
+  opacity: 0.7;
+}
+
+/* Animations */
+@keyframes flicker {
+  0%, 95%, 100% { opacity: 0.8; }
+  96% { opacity: 0.3; }
+  97% { opacity: 0.8; }
+  98% { opacity: 0.2; }
+  99% { opacity: 0.9; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+}
