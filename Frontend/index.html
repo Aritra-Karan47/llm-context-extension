@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Context Extension</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0d08;--surface:#111510;--surface2:#161c13;
+  --border:#1e2a1a;--border2:#253020;
+  --green:#cdf91e;--green-glow:rgba(34,197,94,0.15);
+  --text:#e8f0e4;--muted:#6b7e64;--muted2:#4a5944;
+  --mono:'DM Mono',monospace;--display:'Bricolage Grotesque',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--display);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+/* ─── NAV ─── */
+nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 2.5rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,13,8,.88);backdrop-filter:blur(16px);z-index:100}
+.nav-logo{display:flex;align-items:center;gap:.5rem;font-size:.95rem;font-weight:700;color:var(--green);letter-spacing:-.02em}
+.logo-icon{width:28px;height:28px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#000;font-weight:800}
+.nav-links{display:flex;gap:2rem;list-style:none;font-size:.82rem;color:var(--muted);font-weight:500}
+.nav-links a{color:inherit;text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+
+/* GitHub btn — square, black, with text */
+.github-btn{display:flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .9rem;height:38px;background:#000;border:1px solid #2a2a2a;border-radius:8px;color:#fff;text-decoration:none;transition:all .25s ease;cursor:pointer;flex-shrink:0;font-family:var(--display);font-size:.8rem;font-weight:700;white-space:nowrap}
+.github-btn:hover,.github-btn:focus{box-shadow:0 0 0 2px var(--green),0 0 22px rgba(34,197,94,.35),0 0 50px rgba(34,197,94,.15);border-color:var(--green);outline:none}
+.github-btn:active{box-shadow:0 0 0 2px var(--green),0 0 34px rgba(34,197,94,.55),0 0 72px rgba(34,197,94,.25);transform:scale(.95)}
+.github-btn svg{flex-shrink:0}
+
+/* ─── HERO ─── */
+.hero{position:relative;text-align:center;padding:4.5rem 2rem 3rem;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,black 40%,transparent 100%);opacity:.4}
+.hero-glow{position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(ellipse,rgba(34,197,94,.12) 0%,transparent 70%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:100px;padding:.35rem 1rem;font-size:.75rem;font-weight:500;color:var(--green);margin-bottom:2rem;position:relative;animation:fadeDown .6s ease both}
+.badge-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+h1{font-size:clamp(2.8rem,6vw,5.5rem);font-weight:800;line-height:1;letter-spacing:-.04em;margin-bottom:1.5rem;position:relative;animation:fadeUp .7s ease .1s both}
+h1 .accent{color:var(--green)}
+.hero-sub{font-size:1rem;color:var(--muted);line-height:1.7;max-width:48ch;margin:0 auto 2.5rem;font-weight:400;position:relative;animation:fadeUp .7s ease .2s both}
+.hero-btns{display:flex;gap:1rem;justify-content:center;align-items:center;position:relative;animation:fadeUp .7s ease .3s both;margin-bottom:3rem}
+.btn{padding:.5rem 1.2rem;border-radius:100px;font-family:var(--display);font-size:.82rem;font-weight:600;cursor:pointer;text-decoration:none;border:1px solid transparent;transition:all .2s}
+.btn-outline{background:transparent;border-color:var(--border2);color:var(--muted)}
+.btn-outline:hover{border-color:var(--green);color:var(--green)}
+.btn-green{background:var(--green);color:#000;font-weight:700}
+.btn-green:hover{background:#16dd55;box-shadow:0 0 24px rgba(34,197,94,.4)}
+.btn-large{padding:.75rem 2rem;font-size:.9rem}
+
+/* Browser mockup */
+.browser-wrap{position:relative;max-width:760px;margin:0 auto;animation:fadeUp .9s ease .4s both}
+.browser-wrap::before{content:'';position:absolute;inset:-1px;border-radius:14px;background:linear-gradient(180deg,rgba(34,197,94,.28) 0%,transparent 60%);z-index:-1}
+.browser{background:#0d110b;border:1px solid var(--border2);border-radius:12px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.8)}
+.browser-bar{background:#111510;padding:.7rem 1rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)}
+.bdot{width:10px;height:10px;border-radius:50%}
+.bdot.r{background:#ff5f57}.bdot.y{background:#febc2e}.bdot.g{background:#28c840}
+.burl{margin:0 auto;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.2rem 1.5rem;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.browser-body{padding:1.5rem;display:grid;grid-template-columns:160px 1fr;gap:.8rem;min-height:200px}
+.bb-label{font-size:.6rem;font-family:var(--mono);color:var(--green);margin-bottom:.3rem;letter-spacing:.05em}
+
+/* ─── TICKER ─── */
+.logos-wrap{border-top:1px solid var(--border);border-bottom:1px solid var(--border);overflow:hidden;position:relative;padding:1.4rem 0}
+.logos-wrap::before,.logos-wrap::after{content:'';position:absolute;top:0;bottom:0;width:160px;z-index:2;pointer-events:none}
+.logos-wrap::before{left:0;background:linear-gradient(to right,var(--bg),transparent)}
+.logos-wrap::after{right:0;background:linear-gradient(to left,var(--bg),transparent)}
+.logos-track{display:flex;gap:2.5rem;width:max-content;animation:ticker 28s linear infinite;align-items:center}
+.logos-track:hover{animation-play-state:paused}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* Colorful ticker items */
+.logo-item{display:flex;align-items:center;gap:.65rem;font-size:.95rem;font-weight:700;white-space:nowrap;padding:.3rem .9rem;border-radius:100px;flex-shrink:0;transition:transform .2s,box-shadow .2s;cursor:default}
+.logo-item:hover{transform:scale(1.05)}
+
+.logo-item.claude{color:#ff8c42;background:rgba(255,140,66,.1);border:1px solid rgba(255,140,66,.2)}
+.logo-item.claude:hover{box-shadow:0 0 18px rgba(255,140,66,.25)}
+.logo-item.chatgpt{color:#10a37f;background:rgba(16,163,127,.1);border:1px solid rgba(16,163,127,.2)}
+.logo-item.chatgpt:hover{box-shadow:0 0 18px rgba(16,163,127,.25)}
+.logo-item.gemini{color:#4a8ef5;background:rgba(74,142,245,.1);border:1px solid rgba(74,142,245,.2)}
+.logo-item.gemini:hover{box-shadow:0 0 18px rgba(74,142,245,.25)}
+.logo-item.any{color:var(--green);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.18)}
+.logo-item.any:hover{box-shadow:0 0 18px rgba(34,197,94,.2)}
+.logo-item.chrome{color:#e8b84b;background:rgba(232,184,75,.08);border:1px solid rgba(232,184,75,.18)}
+.logo-item.chrome:hover{box-shadow:0 0 18px rgba(232,184,75,.2)}
+.logo-item.private{color:#a78bfa;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.18)}
+.logo-item.private:hover{box-shadow:0 0 18px rgba(167,139,250,.2)}
+.logo-item.oss{color:#f472b6;background:rgba(244,114,182,.08);border:1px solid rgba(244,114,182,.18)}
+.logo-item.oss:hover{box-shadow:0 0 18px rgba(244,114,182,.2)}
+
+.ticker-sep{width:1px;height:18px;background:var(--border2);flex-shrink:0}
+
+/* ─── SECTIONS ─── */
+section{padding:5rem 2.5rem;position:relative}
+.section-center{text-align:center;margin-bottom:3.5rem}
+.section-label{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;color:var(--green);text-transform:uppercase;margin-bottom:.8rem}
+h2{font-size:clamp(1.8rem,3.5vw,3rem);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-bottom:1rem}
+.sub-text{color:var(--muted);font-size:.9rem;line-height:1.7;max-width:50ch;margin:0 auto}
+
+/* ─── HOW IT WORKS ─── */
+.how-section{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:start;max-width:1100px;margin:0 auto}
+.steps{display:flex;flex-direction:column;gap:0}
+.step{display:flex;gap:1.2rem;padding:1.5rem;cursor:pointer;border-radius:10px;border:1px solid transparent;transition:all .2s}
+.step.active{background:var(--surface2);border-color:rgba(34,197,94,.15)}
+.step-num{width:34px;height:34px;border-radius:8px;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;font-family:var(--mono);flex-shrink:0;transition:all .2s;color:var(--muted)}
+.step.active .step-num{background:var(--green);color:#000}
+.step h4{font-size:.92rem;font-weight:700;margin-bottom:.3rem;letter-spacing:-.01em}
+.step p{font-size:.8rem;color:var(--muted);line-height:1.55}
+.step-line{width:1px;height:16px;background:var(--border2);margin-left:calc(1.5rem + 17px)}
+.anim-panel{position:sticky;top:100px}
+.anim-win{background:#0a0d08;border:1px solid var(--border2);border-radius:12px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.anim-winbar{background:#111510;padding:.65rem 1rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)}
+.awin-title{margin-left:auto;margin-right:auto;font-family:var(--mono);font-size:.68rem;color:var(--muted2)}
+.anim-body{padding:1.5rem;font-family:var(--mono);font-size:.76rem;color:#7a9474;line-height:1.9;min-height:280px}
+.scene{display:none;animation:sceneIn .35s ease}
+.scene.active{display:block}
+@keyframes sceneIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.s-green{color:var(--green)}.s-gold{color:#febc2e}.s-white{color:#c8ddc4}.s-dim{color:var(--muted2)}
+.step-dots{display:flex;gap:.5rem;margin-top:1.2rem;justify-content:center}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--border2);cursor:pointer;transition:all .2s}
+.sdot.active{background:var(--green);width:20px;border-radius:3px}
+
+/* ─── PLATFORMS ─── */
+.plat-section{max-width:1100px;margin:0 auto}
+.plat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:3rem}
+.plat-card{background:var(--surface);padding:2rem;transition:background .2s;position:relative;overflow:hidden}
+.plat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;transform:scaleX(0);transition:transform .3s ease;transform-origin:left}
+.plat-card.claude-card::after{background:#ff8c42}
+.plat-card.chatgpt-card::after{background:#10a37f}
+.plat-card.gemini-card::after{background:#4a8ef5}
+.plat-card:hover{background:var(--surface2)}
+.plat-card:hover::after{transform:scaleX(1)}
+
+/* Platform logo circles */
+.plat-logo{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:1.2rem;position:relative}
+.plat-logo svg{width:32px;height:32px}
+.plat-card.claude-card .plat-logo{background:rgba(255,140,66,.12);border:1px solid rgba(255,140,66,.2)}
+.plat-card.chatgpt-card .plat-logo{background:rgba(16,163,127,.12);border:1px solid rgba(16,163,127,.2)}
+.plat-card.gemini-card .plat-logo{background:rgba(74,142,245,.12);border:1px solid rgba(74,142,245,.2)}
+
+.plat-card h3{font-size:1rem;font-weight:700;margin-bottom:.4rem}
+.plat-card p{font-size:.8rem;color:var(--muted);line-height:1.55}
+.plat-status{display:inline-flex;align-items:center;gap:.4rem;margin-top:1rem;font-size:.68rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;font-family:var(--mono)}
+.plat-card.claude-card .plat-status{color:#ff8c42}
+.plat-card.chatgpt-card .plat-status{color:#10a37f}
+.plat-card.gemini-card .plat-status{color:#4a8ef5}
+.status-dot{width:5px;height:5px;border-radius:50%;animation:pulse 2s infinite}
+.plat-card.claude-card .status-dot{background:#ff8c42}
+.plat-card.chatgpt-card .status-dot{background:#10a37f}
+.plat-card.gemini-card .status-dot{background:#4a8ef5}
+
+/* ─── TECH ─── */
+.tech-section{max-width:1100px;margin:0 auto}
+.tech-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:3rem}
+.tech-card{background:var(--surface);padding:1.8rem;transition:background .2s}
+.tech-card:hover{background:var(--surface2)}
+.tech-chip{display:inline-block;background:var(--green-glow);border:1px solid rgba(34,197,94,.15);border-radius:4px;padding:.15rem .5rem;font-size:.62rem;font-family:var(--mono);color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.8rem}
+.tech-mono{font-family:var(--mono);font-size:.85rem;color:var(--green);display:block;margin-bottom:.5rem}
+.tech-card h3{font-size:.9rem;font-weight:700;margin-bottom:.4rem}
+.tech-card p{font-size:.78rem;color:var(--muted);line-height:1.6}
+
+/* ─── INSTALL ─── */
+.setup-section{border-top:1px solid var(--border)}
+.install-layout{display:grid;grid-template-columns:280px 1fr;gap:1.5rem;max-width:1100px;margin:3rem auto 0;align-items:start}
+.install-steps-nav{background:var(--surface);border:1px solid var(--border2);border-radius:12px;overflow:hidden;position:sticky;top:88px}
+.install-tab{display:flex;align-items:center;gap:.9rem;padding:1.1rem 1.2rem;cursor:pointer;border-bottom:1px solid var(--border);transition:all .2s;position:relative;border-left:2px solid transparent}
+.install-tab:last-child{border-bottom:none}
+.install-tab:hover{background:var(--surface2)}
+.install-tab.active{background:rgba(34,197,94,.07);border-left-color:var(--green)}
+.install-tab-num{width:26px;height:26px;border-radius:6px;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;font-family:var(--mono);color:var(--muted);flex-shrink:0;transition:all .2s}
+.install-tab.active .install-tab-num{background:var(--green);color:#000}
+.install-tab.done .install-tab-num{background:rgba(34,197,94,.15);color:var(--green)}
+.install-tab-label{font-size:.82rem;font-weight:600;color:var(--muted);transition:color .2s}
+.install-tab.active .install-tab-label{color:var(--text)}
+.install-tab-check{margin-left:auto;color:var(--green);font-size:.72rem;opacity:0;transition:opacity .2s}
+.install-tab.done .install-tab-check{opacity:1}
+.install-panels{position:relative}
+.install-panel{display:none;background:var(--surface);border:1px solid var(--border2);border-radius:12px;overflow:hidden;animation:sceneIn .3s ease}
+.install-panel.active{display:block}
+.panel-header{padding:1.5rem 2rem;border-bottom:1px solid var(--border)}
+.panel-step-badge{background:var(--green);color:#000;font-size:.65rem;font-weight:800;font-family:var(--mono);padding:.2rem .6rem;border-radius:5px;letter-spacing:.06em;display:inline-block;margin-bottom:.6rem}
+.panel-header h3{font-size:1.1rem;font-weight:700;letter-spacing:-.01em}
+.panel-header p{font-size:.8rem;color:var(--muted);margin-top:.25rem;line-height:1.5}
+.panel-body{padding:1.8rem}
+.iterm{background:#060908;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1.4rem}
+.iterm-bar{background:#0d110b;padding:.6rem 1rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)}
+.iterm-title{margin-left:auto;margin-right:auto;font-family:var(--mono);font-size:.65rem;color:var(--muted2)}
+.iterm-body{padding:1.2rem;font-family:var(--mono);font-size:.74rem;line-height:1.9;color:#6b8a65}
+.ic{color:var(--green)}.iw{color:#c8ddc4}.ig{color:#febc2e}.id{color:var(--muted2)}
+.checklist{display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.4rem}
+.check-item{display:flex;align-items:center;gap:.8rem;padding:.7rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;user-select:none}
+.check-item:hover{border-color:rgba(34,197,94,.2)}
+.check-item.done{border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.04)}
+.check-box{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:.65rem;color:transparent}
+.check-item.done .check-box{background:var(--green);border-color:var(--green);color:#000}
+.check-item.done .check-label{color:var(--muted);text-decoration:line-through}
+.check-label{font-size:.82rem;font-weight:500}
+.browser-guide{border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:#060908}
+.bg-bar{background:#0d110b;padding:.5rem .8rem;display:flex;align-items:center;gap:.4rem;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.62rem;color:var(--muted2)}
+.bg-body{padding:1.2rem}
+.bg-toggle-row{display:flex;justify-content:space-between;align-items:center;padding:.6rem .8rem;background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.15);border-radius:6px;margin-bottom:.6rem;font-size:.75rem}
+.toggle-pill{width:32px;height:16px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:flex-end;padding:2px}
+.toggle-thumb{width:12px;height:12px;border-radius:50%;background:#000}
+.bg-btn-row{display:flex;gap:.5rem;margin-top:.8rem}
+.bg-btn{background:var(--green);color:#000;border-radius:5px;padding:.4rem .8rem;font-size:.7rem;font-weight:700;animation:btnPulse 2s ease-in-out infinite}
+@keyframes btnPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{box-shadow:0 0 0 6px rgba(34,197,94,0)}}
+.panel-nav{display:flex;gap:.8rem;margin-top:1.4rem}
+.pnav-btn{padding:.6rem 1.4rem;border-radius:8px;font-family:var(--display);font-size:.8rem;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);transition:all .2s}
+.pnav-btn:hover{border-color:var(--green);color:var(--green)}
+.pnav-btn.primary{background:var(--green);color:#000;border-color:var(--green)}
+.pnav-btn.primary:hover{background:#16dd55;box-shadow:0 0 16px rgba(34,197,94,.35)}
+.instruction-row{display:flex;gap:1rem;align-items:flex-start;padding:1rem;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;margin-bottom:.75rem}
+.instruction-row.final{background:rgba(34,197,94,.05);border-color:rgba(34,197,94,.15)}
+.inst-num{width:28px;height:28px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.78rem;flex-shrink:0}
+.inst-num.done-num{background:var(--green);color:#000}
+
+/* ─── FOOTER ─── */
+footer{border-top:1px solid var(--border);padding:2rem 2.5rem;display:flex;justify-content:space-between;align-items:center;font-size:.78rem;color:var(--muted2)}
+footer a{color:var(--green);text-decoration:none}
+footer a:hover{text-decoration:underline}
+
+/* ─── KEYFRAMES ─── */
+@keyframes fadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.section-glow{position:absolute;left:50%;top:0;transform:translateX(-50%);width:600px;height:200px;background:radial-gradient(ellipse,rgba(34,197,94,.06) 0%,transparent 70%);pointer-events:none}
+
+@media(max-width:900px){
+  nav{padding:1rem 1.2rem}.nav-links{display:none}
+  section{padding:3rem 1.2rem}
+  .how-grid{grid-template-columns:1fr;gap:2rem}.anim-panel{position:relative;top:0}
+  .plat-grid,.tech-grid{grid-template-columns:1fr}
+  .install-layout{grid-template-columns:1fr}.install-steps-nav{position:relative;top:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-logo">
+    <div class="logo-icon">
+    <img src="assets/logo.png" alt="KonTexa" width="28" height="28" style="object-fit:contain;">
+    </div>
+    KonTexa
+  </div>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#platforms">Platforms</a></li>
+    <li><a href="#tech">Tech Stack</a></li>
+    <li><a href="#setup">Setup</a></li>
+  </ul>
+  <a href="https://github.com/Aritra-Karan47/llm-context-extension" target="_blank" class="github-btn" title="View on GitHub">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.604-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+    GitHub
+  </a>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-badge"><span class="badge-dot"></span>Open Source · Free · Manifest V3</div>
+  <h1>Never lose your<br><span class="accent">chat context</span> again.</h1>
+  <p class="hero-sub">A browser extension that converts any LLM conversation into a clean Markdown file — so you can continue seamlessly when you hit the token limit.</p>
+  <div class="hero-btns">
+    <a href="#setup" class="btn btn-green btn-large">Get Extension →</a>
+    <a href="#how" class="btn btn-outline btn-large">See how it works</a>
+  </div>
+
+  <!-- BROWSER MOCKUP -->
+  <div class="browser-wrap">
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="bdot r"></div><div class="bdot y"></div><div class="bdot g"></div>
+        <div class="burl">claude.ai / chat</div>
+      </div>
+      <div class="browser-body">
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <div style="height:8px;background:#1e2a1a;border-radius:3px;margin-bottom:8px"></div>
+          <div style="height:8px;width:90%;background:#1e2a1a;border-radius:3px;opacity:.5"></div>
+          <div style="height:8px;width:70%;background:#1e2a1a;border-radius:3px;opacity:.4;margin-top:4px"></div>
+          <div style="height:8px;width:80%;background:#1e2a1a;border-radius:3px;opacity:.3;margin-top:4px"></div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.8rem;display:flex;flex-direction:column;gap:.4rem;position:relative">
+          <div class="bb-label">● CONVERSATION — 3,241 tokens</div>
+          <div style="height:10px;background:#1a2e18;border-radius:3px"></div>
+          <div style="height:8px;width:80%;background:#1a2e18;border-radius:3px;opacity:.7"></div>
+          <div style="margin-top:6px"></div>
+          <div style="height:8px;background:#cdf91e22;border-radius:3px"></div>
+          <div style="height:8px;width:80%;background:#cdf91e15;border-radius:3px"></div>
+          <div style="height:8px;width:40%;background:#cdf91e15;border-radius:3px"></div>
+          <div style="height:10px;background:#1a2e18;border-radius:3px;margin-top:6px"></div>
+          <div style="background:#febc2e15;border:1px solid #febc2e30;border-radius:4px;padding:6px 8px;margin-top:6px">
+            <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:#febc2e">⚠ Context limit approaching — 95% full</div>
+          </div>
+          <div style="position:absolute;right:.8rem;top:.8rem;background:#111510;border:1px solid #cdf91e30;border-radius:10px;padding:.65rem .8rem;width:148px;box-shadow:0 8px 30px rgba(0,0,0,.5)">
+            <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:#cdf91e;margin-bottom:.4rem;letter-spacing:.05em">⟳ LLM CONTEXT</div>
+            <div style="background:#cdf91e;color:#000;border-radius:5px;padding:.32rem .5rem;text-align:center;font-size:.6rem;font-weight:700">📥 Markdownify & Download</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── COLORFUL TICKER ── -->
+<div class="logos-wrap">
+  <div class="logos-track">
+    <!-- set 1 -->
+    <div class="logo-item claude">
+      <!-- Claude logo (Anthropic) -->
+      <img src="assets/claude.png" alt="Claude" width="18" height="18" style="object-fit:contain;">
+      Works on Claude
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item chatgpt">
+      <!-- OpenAI / ChatGPT logo -->
+       <img src="assets/chatgpt.png" alt="ChatGPT" width="18" height="18" style="object-fit:contain;">
+      Works on ChatGPT
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item gemini">
+      <!-- Gemini / Google star -->
+      <img src="assets/gemini.png" alt="Gemini" width="18" height="18" style="object-fit:contain;">
+      Works on Gemini
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item any">
+        <img src="assets/LLM Interface.png" alt="LLM Interface" width="18" height="18" style="object-fit:contain;">
+      Any LLM Interface
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item chrome">
+      <img src="assets/chrome.png" alt="Chrome" width="18" height="18" style="object-fit:contain;">
+      Chrome · Edge · Brave
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item private">
+      <img src="assets/Private.png" alt="Private" width="18" height="18" style="object-fit:contain;">
+      100% Private
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item oss">
+      <img src="assets/MIT Open Source.png" alt="MIT Open Source" width="18" height="18" style="object-fit:contain;">
+      MIT Open Source
+    </div>
+    <div class="ticker-sep"></div>
+    <!-- duplicate for seamless loop -->
+    <div class="logo-item claude">
+      <img src="assets/claude.png" alt="Claude" width="18" height="18" style="object-fit:contain;">
+      Works on Claude
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item chatgpt">
+      <img src="assets/chatgpt.png" alt="ChatGPT" width="18" height="18" style="object-fit:contain;">
+
+      Works on ChatGPT
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item gemini">
+      <img src="assets/gemini.png" alt="Gemini" width="18" height="18" style="object-fit:contain;">
+      Works on Gemini
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item any">
+      <img src="assets/LLM Interface.png" alt="LLM Interface" width="18" height="18" style="object-fit:contain;">
+      Any LLM Interface
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item chrome">
+      <img src="assets/chrome.png" alt="Chrome" width="18" height="18" style="object-fit:contain;">
+      Chrome · Edge · Brave
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item private">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="#a78bfa" stroke-width="1.5"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="#a78bfa" stroke-width="1.5"/><circle cx="12" cy="16" r="1.5" fill="#a78bfa"/></svg>
+      100% Private
+    </div>
+    <div class="ticker-sep"></div>
+    <div class="logo-item oss">
+      <img src="assets/MIT Open Source.png" alt="MIT Open Source" width="18" height="18" style="object-fit:contain;">
+      MIT Open Source
+    </div>
+  </div>
+</div>
+
+<!-- ── HOW IT WORKS ── -->
+<section id="how" class="how-section">
+  <div class="section-glow"></div>
+  <div class="how-grid">
+    <div>
+      <div class="reveal">
+        <div class="section-label">How It Works</div>
+        <h2>Four steps.<br>Full context, preserved.</h2>
+        <p class="sub-text" style="margin:0;margin-top:.5rem">Click each step to see a live preview of what happens.</p>
+      </div>
+      <div class="steps reveal" style="margin-top:2rem">
+        <div class="step active" data-step="0" onclick="setStep(0)">
+          <div class="step-num">01</div>
+          <div><h4>Chat normally on any LLM</h4><p>Use Claude, ChatGPT, or Gemini as normal. Build context over a long session.</p></div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" data-step="1" onclick="setStep(1)">
+          <div class="step-num">02</div>
+          <div><h4>Click the extension icon</h4><p>When near the token limit, click the toolbar icon to open the popup.</p></div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" data-step="2" onclick="setStep(2)">
+          <div class="step-num">03</div>
+          <div><h4>Markdownify & Download</h4><p>Extension captures DOM → sends to local FastAPI → returns clean Markdown → auto-downloads.</p></div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" data-step="3" onclick="setStep(3)">
+          <div class="step-num">04</div>
+          <div><h4>Continue in any new LLM</h4><p>Upload context.md to a new session and pick up exactly where you left off.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="anim-panel reveal">
+      <div class="anim-win">
+        <div class="anim-winbar">
+          <div class="bdot r"></div><div class="bdot y"></div><div class="bdot g"></div>
+          <div class="awin-title" id="anim-title">claude.ai · Active Chat</div>
+        </div>
+        <div class="anim-body">
+          <div class="scene active" id="scene-0">
+            <div class="s-dim">── active conversation ──</div><br>
+            <div><span class="s-green">You:</span> <span class="s-white">Debug this React useEffect dependency issue...</span></div>
+            <div><span class="s-green">Claude:</span> The stale closure is in your useCallback — here's why...</div>
+            <div><span class="s-green">You:</span> <span class="s-white">What about the useMemo pattern we discussed?</span></div>
+            <div><span class="s-green">Claude:</span> Combining useMemo with the selector pattern...</div>
+            <div><span class="s-green">You:</span> <span class="s-white">Can you show a full working example?</span></div>
+            <div><span class="s-green">Claude:</span> Sure, here's the complete implementation...</div><br>
+            <div style="background:rgba(254,188,46,.08);border:1px solid rgba(254,188,46,.2);border-radius:5px;padding:.5rem .75rem"><span class="s-gold">⚠</span> <span class="s-gold">Context limit: 95% — Consider saving context</span></div>
+          </div>
+          <div class="scene" id="scene-1">
+            <div class="s-dim">── extension popup ──</div><br>
+            <div style="background:#0d110b;border:1px solid #cdf91e25;border-radius:8px;padding:1rem;margin-bottom:.8rem">
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.7rem"><span class="s-green">⟳</span><span class="s-white" style="font-size:.8rem;font-weight:600">LLM Context Extension</span></div>
+              <div style="font-size:.65rem;color:#4a5944;margin-bottom:.8rem">Detected: claude.ai · 3,241 tokens</div>
+              <div onclick="animScene1()" style="background:#cdf91e;color:#000;border-radius:5px;padding:.5rem;text-align:center;cursor:pointer;font-weight:700;font-size:.75rem">📥 Markdownify &amp; Download</div>
+            </div>
+            <div id="caplog" style="font-size:.7rem;line-height:2.2"></div>
+          </div>
+          <div class="scene" id="scene-2">
+            <div class="s-dim">── context.md generated ──</div><br>
+            <div><span class="s-green">✓</span> <span class="s-white">~/Downloads/context.md</span></div><br>
+            <div style="background:#070906;border:1px solid #1e2a1a;border-radius:6px;padding:.8rem;font-size:.68rem;color:#4a5944;line-height:1.8">
+              <div class="s-green"># LLM Conversation Context</div>
+              <div><span class="s-green">**Platform:**</span> Claude.ai</div>
+              <div><span class="s-green">**Tokens:**</span> ~3,241 &nbsp;<span class="s-green">**Exchanges:**</span> 24</div>
+              <div style="margin:4px 0;color:#1e2a1a">---</div>
+              <div class="s-white">**You:** Debug this React useEffect...</div>
+              <div>**Claude:** The stale closure is in your...</div>
+              <div style="color:#253020">... 22 more exchanges preserved</div>
+            </div>
+          </div>
+          <div class="scene" id="scene-3">
+            <div class="s-dim">── new session · chatgpt.com ──</div><br>
+            <div><span class="s-green">You:</span> <span class="s-white">[Attaches context.md]</span></div>
+            <div style="background:#070906;border:1px solid #1e2a1a;border-radius:5px;padding:.5rem .75rem;margin:4px 0;font-size:.7rem;color:#4a5944">"Here is my previous conversation. Please continue from where we left off."</div><br>
+            <div><span class="s-green">GPT-4:</span> I can see your full conversation! Continuing with the useMemo selector pattern — here's the complete working implementation:</div><br>
+            <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);border-radius:5px;padding:.5rem .75rem"><span class="s-green">✓</span> Context fully restored — continuing seamlessly</div>
+          </div>
+        </div>
+      </div>
+      <div class="step-dots">
+        <div class="sdot active" onclick="setStep(0)"></div>
+        <div class="sdot" onclick="setStep(1)"></div>
+        <div class="sdot" onclick="setStep(2)"></div>
+        <div class="sdot" onclick="setStep(3)"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PLATFORMS ── -->
+<section id="platforms">
+  <div class="plat-section">
+    <div class="section-center reveal">
+      <div class="section-label">Platform Support</div>
+      <h2>Works where you work.</h2>
+      <p class="sub-text">The extension reads the live DOM — no special integration needed. If it's a chat interface, it works.</p>
+    </div>
+    <div class="plat-grid reveal">
+
+      <!-- Claude -->
+      <div class="plat-card claude-card">
+        <div class="plat-logo">
+          <img src="assets/claude.png" alt="Claude" width="36" height="36" style="object-fit:contain;border-radius:8px"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <!-- fallback SVG if image not found -->
+          <svg style="display:none" width="32" height="32" viewBox="0 0 48 48" fill="none">
+            <path d="M18 14h4v20h-4V14zM26 14h4v20h-4V14z" fill="#ff8c42"/>
+            <path d="M14 22h20v4H14v-4z" fill="#ff8c42" opacity=".4"/>
+          </svg>
+        </div>
+        <h3>Claude (Anthropic)</h3>
+        <p>Full support for claude.ai across all Claude models including Opus 4, Sonnet 4, and Haiku.</p>
+        <div class="plat-status"><span class="status-dot"></span>Fully supported</div>
+      </div>
+
+      <!-- ChatGPT -->
+      <div class="plat-card chatgpt-card">
+        <div class="plat-logo">
+          <img src="assets/chatgpt.png" alt="ChatGPT" width="36" height="36" style="object-fit:contain;border-radius:8px"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <!-- fallback SVG if image not found -->
+          <svg style="display:none" width="32" height="32" viewBox="0 0 48 48" fill="none">
+            <path d="M38.5 21.2a8.5 8.5 0 0 0-.73-7.02 8.6 8.6 0 0 0-9.25-4.12A8.5 8.5 0 0 0 22.4 8a8.58 8.58 0 0 0-8.2 5.94 8.5 8.5 0 0 0-5.7 4.12 8.59 8.59 0 0 0 1.06 10.07 8.5 8.5 0 0 0 .73 7.02 8.6 8.6 0 0 0 9.25 4.12A8.5 8.5 0 0 0 25.6 41a8.58 8.58 0 0 0 8.2-5.95 8.5 8.5 0 0 0 5.7-4.12 8.59 8.59 0 0 0-1.06-10.07l.06.34z" stroke="#10a37f" stroke-width="1.6" fill="none"/>
+            <circle cx="24" cy="24" r="4" fill="#10a37f"/>
+          </svg>
+        </div>
+        <h3>ChatGPT (OpenAI)</h3>
+        <p>Works on chat.openai.com with GPT-3.5, GPT-4, GPT-4o, and o1 models.</p>
+        <div class="plat-status"><span class="status-dot"></span>Fully supported</div>
+      </div>
+
+      <!-- Gemini -->
+      <div class="plat-card gemini-card">
+        <div class="plat-logo">
+          <img src="assets/gemini.png" alt="Gemini" width="36" height="36" style="object-fit:contain;border-radius:8px"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <!-- fallback SVG if image not found -->
+          <svg style="display:none" width="32" height="32" viewBox="0 0 48 48" fill="none">
+            <path d="M24 6 L26.5 21.5 L42 24 L26.5 26.5 L24 42 L21.5 26.5 L6 24 L21.5 21.5 Z" fill="#4a8ef5"/>
+          </svg>
+        </div>
+        <h3>Google Gemini</h3>
+        <p>Captures conversations from gemini.google.com across all Gemini model variants.</p>
+        <div class="plat-status"><span class="status-dot"></span>Fully supported</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── TECH STACK ── -->
+<section id="tech" style="padding-top:2.5rem">
+  <div class="tech-section">
+    <div class="section-center reveal">
+      <div class="section-label">Tech Stack</div>
+      <h2>Built lean.<br>No bloat, no cloud.</h2>
+      <p class="sub-text">A small, purposeful stack. Browser extension talks to a local Python backend. That's it.</p>
+    </div>
+    <div class="tech-grid reveal">
+      <div class="tech-card">
+        <div class="tech-chip">Frontend</div>
+        <span class="tech-mono">Manifest V3</span>
+        <h3>Chrome Extension</h3>
+        <p>Modern Manifest V3 with a service worker. Compatible with Chrome, Edge, and Brave.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-chip">Frontend</div>
+        <span class="tech-mono">popup.js · content.js</span>
+        <h3>Vanilla JavaScript</h3>
+        <p>Zero dependencies on the browser side. Lightweight scripts that read the live DOM.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-chip">Backend</div>
+        <span class="tech-mono">FastAPI · Python 3.8+</span>
+        <h3>Local FastAPI Server</h3>
+        <p>Runs on localhost:5000. Receives raw HTML, returns clean Markdown. Private by design.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-chip">Converter</div>
+        <span class="tech-mono">html2text · markdownify</span>
+        <h3>HTML → Markdown</h3>
+        <p>Strips all UI noise and extracts the pure conversation into a portable .md file.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── INTERACTIVE INSTALLATION ── -->
+<section id="setup" class="setup-section">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-center reveal">
+      <div class="section-label">Installation</div>
+      <h2>Up and running<br>in 3 steps.</h2>
+      <p class="sub-text">No cloud. No accounts. Tick off each task as you complete it.</p>
+    </div>
+    <div class="install-layout reveal">
+      <!-- NAV -->
+      <div class="install-steps-nav">
+        <div class="install-tab active" onclick="showPanel(0,this)">
+          <div class="install-tab-num">01</div>
+          <div class="install-tab-label">Clone & Backend</div>
+          <div class="install-tab-check">✓</div>
+        </div>
+        <div class="install-tab" onclick="showPanel(1,this)">
+          <div class="install-tab-num">02</div>
+          <div class="install-tab-label">Load Extension</div>
+          <div class="install-tab-check">✓</div>
+        </div>
+        <div class="install-tab" onclick="showPanel(2,this)">
+          <div class="install-tab-num">03</div>
+          <div class="install-tab-label">Use It</div>
+          <div class="install-tab-check">✓</div>
+        </div>
+      </div>
+      <!-- PANELS -->
+      <div class="install-panels">
+        <!-- Panel 1 -->
+        <div class="install-panel active" id="panel-0">
+          <div class="panel-header">
+            <div class="panel-step-badge">STEP 01</div>
+            <h3>Clone the repo &amp; start the backend</h3>
+            <p>Run these commands in your terminal. Keep the server running while using the extension.</p>
+          </div>
+          <div class="panel-body">
+            <div class="iterm">
+              <div class="iterm-bar"><div class="bdot r"></div><div class="bdot y"></div><div class="bdot g"></div><div class="iterm-title">Terminal</div></div>
+              <div class="iterm-body">
+                <div><span class="id"># 1. Clone the repository</span></div>
+                <div><span class="ic">$</span> <span class="iw">git clone</span> github.com/Aritra-Karan47/llm-context-extension</div>
+                <div><span class="ic">$</span> cd llm-context-extension<span class="ig">/backend</span></div>
+                <div style="margin-top:.3rem"><span class="id"># 2. Install Python dependencies</span></div>
+                <div><span class="ic">$</span> pip install -r requirements.txt</div>
+                <div style="margin-top:.3rem"><span class="id"># 3. Start the server — keep this running!</span></div>
+                <div><span class="ic">$</span> python app.py</div>
+                <div><span class="ic">✓</span> <span class="iw">Backend running on</span> <span class="ig">http://localhost:5000</span></div>
+              </div>
+            </div>
+            <div class="checklist">
+              <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><span class="check-label">Repository cloned to my machine</span></div>
+              <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><span class="check-label">pip install completed without errors</span></div>
+              <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><span class="check-label">Backend server running on localhost:5000</span></div>
+            </div>
+            <div class="panel-nav">
+              <button class="pnav-btn primary" onclick="showPanel(1,document.querySelectorAll('.install-tab')[1])">Next: Load Extension →</button>
+            </div>
+          </div>
+        </div>
+        <!-- Panel 2 -->
+        <div class="install-panel" id="panel-1">
+          <div class="panel-header">
+            <div class="panel-step-badge">STEP 02</div>
+            <h3>Load the extension into Chrome</h3>
+            <p>Enable Developer Mode and load the unpacked folder. Takes about 30 seconds.</p>
+          </div>
+          <div class="panel-body">
+            <div class="browser-guide">
+              <div class="bg-bar"><div class="bdot r"></div><div class="bdot y"></div><div class="bdot g"></div><span style="margin-left:.5rem">chrome://extensions/</span></div>
+              <div class="bg-body">
+                <div class="bg-toggle-row">
+                  <span style="font-size:.78rem;font-weight:600;color:#c8ddc4">Developer mode</span>
+                  <div class="toggle-pill"><div class="toggle-thumb"></div></div>
+                </div>
+                <div style="font-size:.7rem;color:var(--muted2);margin-bottom:.8rem">← Enable this toggle in the top-right corner</div>
+                <div class="bg-btn-row">
+                  <div class="bg-btn">Load unpacked</div>
+                  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:.4rem .8rem;font-size:.7rem;color:var(--muted)">Pack extension</div>
+                </div>
+                <div style="font-size:.7rem;color:var(--muted2);margin-top:.6rem">← Click, then select the <span style="color:var(--green);font-family:var(--mono)">extension/</span> folder</div>
+              </div>
+            </div>
+            <div class="checklist" style="margin-top:1.2rem">
+              <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><span class="check-label">Opened chrome://extensions/ in browser</span></div>
+              <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><span class="check-label">Developer Mode is toggled ON</span></div>
+              <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><span class="check-label">Clicked "Load unpacked" and selected extension/ folder</span></div>
+              <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><span class="check-label">Extension icon (⟳) now visible in browser toolbar</span></div>
+            </div>
+            <div class="panel-nav">
+              <button class="pnav-btn" onclick="showPanel(0,document.querySelectorAll('.install-tab')[0])">← Back</button>
+              <button class="pnav-btn primary" onclick="showPanel(2,document.querySelectorAll('.install-tab')[2])">Next: Use It →</button>
+            </div>
+          </div>
+        </div>
+        <!-- Panel 3 -->
+        <div class="install-panel" id="panel-2">
+          <div class="panel-header">
+            <div class="panel-step-badge">STEP 03</div>
+            <h3>You're set up — here's how to use it</h3>
+            <p>Whenever you hit the context limit, follow these three actions.</p>
+          </div>
+          <div class="panel-body">
+            <div class="instruction-row">
+              <div class="inst-num">1</div>
+              <div>
+                <div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem">Chat on any LLM until you see the context warning</div>
+                <div style="font-size:.78rem;color:var(--muted)">Go to Claude, ChatGPT, or Gemini and have your conversation normally.</div>
+              </div>
+            </div>
+            <div class="instruction-row">
+              <div class="inst-num">2</div>
+              <div>
+                <div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem">Click the ⟳ icon → "Markdownify &amp; Download"</div>
+                <div style="font-size:.78rem;color:var(--muted)">A <span style="color:var(--green);font-family:var(--mono)">context.md</span> file downloads automatically.</div>
+              </div>
+            </div>
+            <div class="instruction-row final">
+              <div class="inst-num done-num">✓</div>
+              <div>
+                <div style="font-size:.88rem;font-weight:600;margin-bottom:.2rem">Open a new LLM session → upload context.md → continue!</div>
+                <div style="font-size:.78rem;color:var(--muted)"><em>"Here is my previous conversation. Please continue from where we left off."</em></div>
+              </div>
+            </div>
+            <div style="background:#060908;border:1px solid var(--border);border-radius:8px;padding:1rem;font-family:var(--mono);font-size:.72rem;color:#6b8a65;line-height:1.9;margin-top:1.2rem">
+              <div><span style="color:var(--muted2)"># Recommended prompt template</span></div>
+              <div style="color:#c8ddc4;margin-top:.3rem">"Here is my previous conversation with [LLM].</div>
+              <div style="color:#c8ddc4"> Please read context.md and continue helping me</div>
+              <div style="color:#c8ddc4"> from where we left off."</div>
+              <div style="margin-top:.4rem"><span style="color:var(--green)">✓</span> Full context restored</div>
+            </div>
+            <div class="panel-nav">
+              <button class="pnav-btn" onclick="showPanel(1,document.querySelectorAll('.install-tab')[1])">← Back</button>
+              <a href="https://github.com/Aritra-Karan47/llm-context-extension" target="_blank" class="github-btn" style="height:38px;padding:0 1.1rem;border-radius:8px;font-size:.82rem;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.604-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+                GitHub
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<script>
+/* HOW IT WORKS */
+const animTitles=['claude.ai · Active Chat','Extension Popup','context.md Downloaded','chatgpt.com · Restored'];
+function setStep(n){
+  document.querySelectorAll('.step').forEach((el,i)=>el.classList.toggle('active',i===n));
+  document.querySelectorAll('.scene').forEach((el,i)=>el.classList.toggle('active',i===n));
+  document.querySelectorAll('.sdot').forEach((el,i)=>el.classList.toggle('active',i===n));
+  document.getElementById('anim-title').textContent=animTitles[n];
+  if(n===1)setTimeout(animScene1,400);
+}
+function animScene1(){
+  const log=document.getElementById('caplog');log.innerHTML='';
+  const lines=[
+    `<span style="color:#cdf91e">→</span> Injecting content script...`,
+    `<span style="color:#cdf91e">→</span> Capturing DOM: <span style="color:#c8ddc4">3,241 tokens</span>`,
+    `<span style="color:#cdf91e">→</span> POST localhost:5000/convert`,
+    `<span style="color:#cdf91e">→</span> Markdown conversion: <span style="color:#c8ddc4">done</span>`,
+    `<span style="color:#cdf91e">✓</span> <span style="color:#cdf91e">context.md</span> downloading...`,
+  ];
+  lines.forEach((l,i)=>setTimeout(()=>{log.innerHTML+=l+'<br>';},i*420));
+}
+
+/* INSTALL */
+function showPanel(idx,tabEl){
+  document.querySelectorAll('.install-panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+  document.querySelectorAll('.install-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+}
+function toggleCheck(item){
+  item.classList.toggle('done');
+  const panel=item.closest('.install-panel');
+  const pIdx=[...document.querySelectorAll('.install-panel')].indexOf(panel);
+  const total=panel.querySelectorAll('.check-item').length;
+  const done=panel.querySelectorAll('.check-item.done').length;
+  document.querySelectorAll('.install-tab')[pIdx].classList.toggle('done',done===total);
+}
+
+/* SCROLL REVEAL */
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:.08});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
