@@ -36,19 +36,29 @@ You can use this on:
 ```
 llm-context-extension/
 │
-├── extension/                  # Browser extension (frontend)
-│   ├── manifest.json           # Extension manifest (V3)
-│   ├── popup.html              # Extension popup UI
-│   ├── popup.js                # Popup logic — captures DOM, talks to backend
-│   ├── content.js              # Content script injected into chat pages
-│   ├── background.js           # Service worker (Manifest V3)
+├── backend/                        # Python backend
+│   ├── __pycache__/               # Compiled Python files
+│   ├── core/                      # Core backend logic modules
+│   ├── main.py                    # FastAPI entry point
+│   └── requirements.txt           # Python dependencies
 │
-├── backend/                    # Python backend
-│   ├── main.py                 # FastAPI server — receives HTML, returns Markdown
-│   ├── converter.py            # Core HTML-to-Markdown conversion logic
-│   └── requirements.txt        # Python dependencies
-│ 
-└── README.md
+├── extension/                     # Browser extension (frontend logic)
+│   ├── content-scripts/           # Injected scripts for web pages
+│   └── popup/                     # Extension popup UI
+│       ├── popup.css              # Styles for popup
+│       ├── popup.html             # Popup structure
+│       └── popup.js               # Popup behavior
+│   └── manifest.json              # Extension manifest (V3)
+│
+├── Frontend/                      # Additional frontend assets / experiments
+│   ├── assets/                   # Static assets (icons, images, etc.)
+│   └── llm-context-extension-dark (3).html  # Standalone UI prototype
+│
+├── venv/                          # Python virtual environment
+├── .env                           # Environment variables
+├── .gitignore                     # Git ignore rules
+├── LICENSE.md                     # License file
+└── README.md                      # Project documentation
 ```
 
 > **Note:** The actual file structure may vary slightly. This reflects the standard layout for this type of project.
