@@ -47,7 +47,7 @@ llm-context-extension/
 │   ├── main.py                 # FastAPI server — receives HTML, returns Markdown
 │   ├── converter.py            # Core HTML-to-Markdown conversion logic
 │   └── requirements.txt        # Python dependencies
-│
+│ 
 └── README.md
 ```
 
@@ -84,10 +84,11 @@ pip install -r requirements.txt
 Start the backend server:
 
 ```bash
-python app.py
+uvicorn main:app --reload
+
 ```
 
-The server will start at `http://localhost:5000` (or whichever port is configured). **Keep this running** while using the extension.
+The server will start at `http://localhost:8000` (or whichever port is configured). **Keep this running** while using the extension.
 
 ---
 
@@ -147,9 +148,10 @@ const BACKEND_URL = "http://localhost:5000/convert"; // Change port if needed
 | Issue | Fix |
 |---|---|
 | Extension not appearing | Make sure Developer Mode is ON and you selected the correct `extension/` folder |
-| Download not triggering | Ensure the Python backend is running (`python app.py`) |
+| Download not triggering | Ensure the Python backend is running (`uvicorn main:app --reload
+`) |
 | Empty or broken Markdown | Try refreshing the chat page and clicking the extension again |
-| CORS errors in console | Ensure the backend has CORS enabled (check `app.py`) |
+| CORS errors in console | Ensure the backend has CORS enabled (check `main.py`) |
 | Port conflict | Change the port in `app.py` and update `popup.js` accordingly |
 
 ---
