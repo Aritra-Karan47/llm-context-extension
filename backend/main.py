@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from core.converter import html_to_markdown
+from backend.core.converter import html_to_markdown
 
 app = FastAPI(title="LLM Context Converter")
 
