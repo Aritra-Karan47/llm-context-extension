@@ -1,4 +1,3 @@
-
 const BACKEND_URL = "http://localhost:8000/convert";
 
 document.getElementById("convertBtn").addEventListener("click", async () => {
@@ -76,6 +75,26 @@ function extractMainChatContent() {
   else if (hostname.includes('gemini.google.com')) {
     messages = document.querySelectorAll('share-turn-viewer, response-container, [data-turn], div[role="chat-turn"], article');
   }
+  else if (hostname.includes('grok.com') || hostname.includes('x.com')) {
+    // Grok renders turns inside .message-bubble or role-attributed divs
+    messages = document.querySelectorAll(
+      '[class*="message-bubble"], [class*="UserMessage"], [class*="AssistantMessage"], ' +
+      '[class*="user-message"], [class*="assistant-message"], ' +
+      '[data-testid*="message"], [data-testid*="turn"], ' +
+      '[class*="conversation-turn"], [class*="ChatMessage"]'
+    );
+
+    // Grok fallback: grab the main scrollable chat column
+    if (messages.length < 2) {
+      const grokMain =
+        document.querySelector('[class*="conversation"]') ||
+        document.querySelector('[class*="chat-content"]') ||
+        document.querySelector('main');
+      if (grokMain) {
+        messages = grokMain.querySelectorAll('div[class*="message"], div[class*="turn"], div[class*="bubble"]');
+      }
+    }
+  }
 
   // 2. Smart fallback chain (works on new layouts & shared links)
   if (messages.length < 2) {
@@ -126,8 +145,28 @@ function extractMainChatContent() {
     });
 
     // Add clear role header for better Markdown
-    const role = msg.getAttribute('data-message-author-role') || 
-                 (msg.textContent.toLowerCase().includes('you') ? 'user' : 'assistant');
+    // Supports: data-attribute (ChatGPT), class-name (Grok), text heuristic (fallback)
+    const classList = (msg.className || '').toLowerCase();
+    const dataRole = msg.getAttribute('data-message-author-role') ||
+                     msg.getAttribute('data-role');
+    const isUser =
+      dataRole === 'user' ||
+      classList.includes('user') ||
+      classList.includes('human') ||
+      msg.closest('[data-message-author-role="user"]') !== null ||
+      msg.closest('[class*="UserMessage"]') !== null ||
+      msg.closest('[class*="user-message"]') !== null;
+
+    const isAssistant =
+      dataRole === 'assistant' ||
+      classList.includes('assistant') ||
+      classList.includes('bot') ||
+      classList.includes('grok') ||
+      msg.closest('[data-message-author-role="assistant"]') !== null ||
+      msg.closest('[class*="AssistantMessage"]') !== null ||
+      msg.closest('[class*="assistant-message"]') !== null;
+
+    const role = isUser ? 'user' : isAssistant ? 'assistant' : null;
     if (role) {
       const label = document.createElement('h3');
       label.textContent = role === 'user' ? '👤 User' : '🤖 Assistant';
